@@ -1,18 +1,80 @@
-name: GitHub Actions Demo
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+name: GitHub Actions Demo - Django CI/CD
+run-name: ${{ github.actor }} is testing and deploying Django 🚀
+
 on: [push]
+
 jobs:
-  Explore-GitHub-Actions:
+  build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      # 🟢 Demo information steps
+      - run: echo "🎉 Triggered by a ${{ github.event_name }} event on branch ${{ github.ref }}."
+      - run: echo "🐧 Running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "💡 Repository: ${{ github.repository }}"
+
+      # 🟢 Checkout your repository
       - name: Check out repository code
-        uses: actions/checkout@v5
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
+        uses: actions/checkout@v4
+
+      # 🟢 List files
       - name: List files in the repository
+        run: ls ${{ github.workspace }}
+
+      # 🧰 Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # 📦 Install dependencies
+      - name: Install dependencies
         run: |
-          ls ${{ github.workspace }}
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ⚙️ Run Django migrations
+      - name: Run migrations
+        run: |
+          python manage.py migrate --noinput
+
+      # 🧪 Run Django tests
+      - name: Run tests
+        run: |
+          python manage.py test
+
+      # 🔐 Configure AWS credentials using AssumeRole
+      - name: Configure AWS Credentials
+        if: success()
+        uses: aws-actions/configure-aws-credentials@v5.1.0
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
+          role-duration-seconds: 1200
+          role-session-name: GitHubActionsDeploySession
+
+      # 🚀 Deploy to AWS Elastic Beanstalk
+      - name: Deploy to AWS Elastic Beanstalk
+        if: success()
+        run: |
+          echo "📦 Packaging application..."
+          zip -r deploy.zip . -x "*.git*" "*.github*"
+
+          echo "☁️ Uploading to S3..."
+          aws s3 cp deploy.zip "s3://elasticbeanstalk-${{ secrets.AWS_REGION }}-${{ github.repository_owner }}/build-${{ github.run_number }}.zip"
+
+          echo "🆕 Creating new application version..."
+          aws elasticbeanstalk create-application-version \
+            --application-name "${{ secrets.EB_APP_NAME }}" \
+            --version-label "build-${{ github.run_number }}" \
+            --source-bundle S3Bucket="elasticbeanstalk-${{ secrets.AWS_REGION }}-${{ github.repository_owner }}",S3Key="build-${{ github.run_number }}.zip"
+
+          echo "🚀 Updating environment..."
+          aws elasticbeanstalk update-environment \
+            --environment-name "${{ secrets.EB_ENV_NAME }}" \
+            --version-label "build-${{ github.run_number }}"
+
+      - run: echo "🍏 Workflow completed successfully with status: ${{ job.status }}"
