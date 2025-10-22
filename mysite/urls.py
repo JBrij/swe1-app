@@ -3,7 +3,7 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('polls/', include('polls.urls')),
-    path('', RedirectView.as_view(url='/polls/')),  # Redirect root to /polls/
+    path("admin/", admin.site.urls),
+    path("polls/", include("polls.urls")),
+    path("", RedirectView.as_view(url="/polls/")),  # Redirect root to /polls/
 ]
