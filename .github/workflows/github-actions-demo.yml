@@ -38,14 +38,14 @@ jobs:
       run: |
         python manage.py migrate
         coverage run --source='polls' manage.py test
-
-    - name: Generate Coverage Report
-      run: coverage report
+        coverage xml  # generate coverage.xml for Coveralls
 
     - name: Upload Coverage to Coveralls
       uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
+        path-to-lcov: coverage.xml
+
 
   deploy:
     needs: test
