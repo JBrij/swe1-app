@@ -21,13 +21,17 @@ class QuestionModelTests(TestCase):
 
     def test_was_published_recently_with_recent_question(self):
         """was_published_recently() returns True for recent questions."""
-        recent_time = timezone.now() - datetime.timedelta(hours=23, minutes=59, seconds=59)
+        recent_time = timezone.now() - datetime.timedelta(
+            hours=23, minutes=59, seconds=59
+        )
         recent_question = Question(pub_date=recent_time)
         self.assertIs(recent_question.was_published_recently(), True)
 
     def test_str_methods(self):
         """String representations of models should be readable."""
-        q = Question.objects.create(question_text="Best framework?", pub_date=timezone.now())
+        q = Question.objects.create(
+            question_text="Best framework?", pub_date=timezone.now()
+        )
         c = Choice.objects.create(question=q, choice_text="Django", votes=5)
         self.assertEqual(str(q), "Best framework?")
         self.assertEqual(str(c), "Django")
@@ -37,8 +41,13 @@ class QuestionModelTests(TestCase):
 class QuestionViewTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.q1 = Question.objects.create(question_text="Past Q1", pub_date=timezone.now() - datetime.timedelta(days=1))
-        self.q2 = Question.objects.create(question_text="Recent Q2", pub_date=timezone.now())
+        self.q1 = Question.objects.create(
+            question_text="Past Q1",
+            pub_date=timezone.now() - datetime.timedelta(days=1),
+        )
+        self.q2 = Question.objects.create(
+            question_text="Recent Q2", pub_date=timezone.now()
+        )
 
     def test_index_view_status_code_and_template(self):
         """Index page should load and use the correct template."""
@@ -71,11 +80,14 @@ class VoteViewTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.question = Question.objects.create(
-            question_text="Favorite language?",
-            pub_date=timezone.now()
+            question_text="Favorite language?", pub_date=timezone.now()
         )
-        self.choice1 = Choice.objects.create(question=self.question, choice_text="Python", votes=0)
-        self.choice2 = Choice.objects.create(question=self.question, choice_text="C++", votes=0)
+        self.choice1 = Choice.objects.create(
+            question=self.question, choice_text="Python", votes=0
+        )
+        self.choice2 = Choice.objects.create(
+            question=self.question, choice_text="C++", votes=0
+        )
 
     def test_vote_valid_choice_increments_vote(self):
         """Submitting a valid vote should increase the vote count."""
@@ -83,7 +95,9 @@ class VoteViewTests(TestCase):
         response = self.client.post(url, {"choice": self.choice1.id})
         self.choice1.refresh_from_db()
         self.assertEqual(self.choice1.votes, 1)
-        self.assertRedirects(response, reverse("polls:results", args=(self.question.id,)))
+        self.assertRedirects(
+            response, reverse("polls:results", args=(self.question.id,))
+        )
 
     def test_vote_invalid_choice_shows_error(self):
         """Submitting without a valid choice shows an error."""
@@ -99,4 +113,3 @@ class VoteViewTests(TestCase):
         response = self.client.post(url, {})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "You didn&#x27;t select a choice.")
-
